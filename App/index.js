@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { StackNavigator } from 'react-navigation';
 
+import CodePush from './CodePush';
 import List from './List';
 import Article from './Article';
 
@@ -49,4 +50,15 @@ App.prototype.componentWillUpdate = function(props, state)
 // };
 
 
-export default App;
+export default class extends React.Component {
+
+	render() {
+		return (
+			<View style={{flex: 1}}>
+				<App/>
+				<CodePush/>
+			</View>
+		);
+	}
+
+};

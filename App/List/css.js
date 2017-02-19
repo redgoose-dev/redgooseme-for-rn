@@ -1,4 +1,7 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const deviceWidth = Dimensions.get('window').width;
+
 
 export default StyleSheet.create({
 	container: { flex: 1 },
@@ -33,7 +36,7 @@ export default StyleSheet.create({
 	},
 	item__image: {
 		marginTop: 5,
-		width: 305,
+		width: deviceWidth - 70,
 		height: 150,
 	},
 });
