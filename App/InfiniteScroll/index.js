@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View, ListView } from 'react-native';
+import { ListView, RefreshControl } from 'react-native';
 
 import css from './css';
 import Item from '../List/Item';
@@ -21,6 +21,7 @@ export default class InfiniteScroll extends React.Component {
 			loading: false,
 			error: false,
 			more: false,
+			refreshing: false,
 		};
 
 		this.address = props.address || '';
@@ -31,59 +32,71 @@ export default class InfiniteScroll extends React.Component {
 	}
 
 	componentDidMount() {
-		const { startPage } = this.props;
-		this.get(startPage || 1);
+		this.get(this.props.startPage || 1, false).then();
 	}
 
-	get(page=1) {
-		const { address, header, pageParam, correctionDatas, delay } = this.props;
-		const { rowItems } = this.state;
+	get(page=1, push=true) {
+		return new Promise((resolve, reject) => {
+			const { address, header, pageParam, correctionDatas, delay } = this.props;
+			const { rowItems } = this.state;
 
-		this.power = false;
-		this.setState({ loading: true });
+			this.power = false;
+			this.setState({ loading: true });
 
-		setTimeout(() => fetch(`${address}&${pageParam}=${page}`, {
-			method: 'GET',
-			headers: {
-				...header,
-			},
-		})
-			.then((response) => response.json())
-			.then((responseJSON) => {
-				let datas = [];
-				if (correctionDatas)
-				{
-					datas = correctionDatas(responseJSON);
-				}
-				else
-				{
-					datas = responseJSON;
-				}
+			setTimeout(() => fetch(`${address}&${pageParam}=${page}`, {
+				method: 'GET',
+				headers: {
+					...header,
+				},
+			})
+				.then((response) => response.json())
+				.then((responseJSON) => {
+					let datas = [];
+					if (correctionDatas)
+					{
+						datas = correctionDatas(responseJSON);
+					}
+					else
+					{
+						datas = responseJSON;
+					}
 
-				if (datas.length)
-				{
-					this.setState({
-						rowItems: rowItems.concat(datas),
-						items: ds.cloneWithRows(rowItems.concat(datas)),
-						loading: false,
-						page: page,
-						more: true,
-					});
-					this.power = true;
-				}
-				else
-				{
-					this.setState({ loading: false, more: false });
+					if (datas.length)
+					{
+						let newData = push ? rowItems.concat(datas) : datas;
+						this.setState({
+							rowItems: newData,
+							items: ds.cloneWithRows(newData),
+							loading: false,
+							page: page,
+							more: true,
+						});
+						this.power = true;
+					}
+					else
+					{
+						this.setState({ loading: false, more: false });
+						this.power = false;
+					}
+
+					resolve();
+				}, (error) => {
+					this.setState({ loading: false, error: true });
 					this.power = false;
-				}
-			}, (error) => {
-				this.setState({ loading: false, error: true });
-				this.power = false;
-			}), delay || 30);
+					reject();
+				}), delay || 30);
+		});
 	}
 
-	loadMore() {
-		this.get(this.state.page + 1);
+	more() {
+		this.get(this.state.page + 1, true).then();
+	}
+
+	refresh() {
+		this.setState({refreshing: true});
+		this.get(this.props.startPage || 1, false).then(() => {
+			this.setState({refreshing: false});
+		});
 	}
 
 	_renderRow(data) {
@@ -97,7 +110,7 @@ export default class InfiniteScroll extends React.Component {
 
 		return (
 			<Footer
-				onPressMore={this.loadMore.bind(this)}
+				onPressMore={this.more.bind(this)}
 				loading={loading}
 				error={error}
 				more={more && useMoreButton}/>
@@ -112,8 +125,15 @@ export default class InfiniteScroll extends React.Component {
 			<ListView
 				onEndReached={() => {
 					if (!this.power || !this.onInfiniteScroll) return false;
-					this.loadMore();
+					this.more();
 				}}
+				onEndReachedThreshold={5}
+				removeClippedSubviews={true}
+				refreshControl={(
+					<RefreshControl
+						refreshing={this.state.refreshing}
+						onRefresh={this.refresh.bind(this)}/>
+				)}
 				dataSource={items}
 				pageSize={pageSize}
 				initialListSize={pageSize}
@@ -123,4 +143,5 @@ export default class InfiniteScroll extends React.Component {
 				style={[css.viewport, style]}/>
 		);
 	}
+
 }
