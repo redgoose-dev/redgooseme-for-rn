@@ -26,10 +26,8 @@ export default class InfiniteScroll extends React.Component {
 		this.address = props.address || '';
 		this.pageSize = props.pageSize || 5;
 
-		this.onInfiniteScroll = props.scrollEvent || true;
+		this.onInfiniteScroll = (typeof props.useScrollEvent === 'undefined') ? true : props.useScrollEvent;
 		this.power = false;
-		this.totalPage = 0;
-		this.page = 1;
 	}
 
 	componentDidMount() {
@@ -38,7 +36,7 @@ export default class InfiniteScroll extends React.Component {
 	}
 
 	get(page=1) {
-		const { address, pageParam, correctionDatas, pageSize, delay } = this.props;
+		const { address, header, pageParam, correctionDatas, delay } = this.props;
 		const { rowItems } = this.state;
 
 		this.power = false;
@@ -46,6 +44,9 @@ export default class InfiniteScroll extends React.Component {
 
 		setTimeout(() => fetch(`${address}&${pageParam}=${page}`, {
 			method: 'GET',
+			headers: {
+				...header,
+			},
 		})
 			.then((response) => response.json())
 			.then((responseJSON) => {
@@ -61,9 +62,6 @@ export default class InfiniteScroll extends React.Component {
 
 				if (datas.length)
 				{
-					this.totalPage = Math.ceil(datas.length / pageSize) - 1;
-					if (this.totalPage <= 0) this.totalPage = 1;
-					this.page = 1;
 					this.setState({
 						rowItems: rowItems.concat(datas),
 						items: ds.cloneWithRows(rowItems.concat(datas)),
@@ -107,17 +105,18 @@ export default class InfiniteScroll extends React.Component {
 	}
 
 	render() {
-		const { style } = this.props;
+		const { style, pageSize } = this.props;
 		const { items } = this.state;
 
 		return (
 			<ListView
-				onScroll={(e) => {
+				onEndReached={() => {
 					if (!this.power || !this.onInfiniteScroll) return false;
-					if (this.totalPage >= this.page) this.loadMore();
-					else this.page++;
+					this.loadMore();
 				}}
 				dataSource={items}
+				pageSize={pageSize}
+				initialListSize={pageSize}
 				enableEmptySections={true}
 				renderRow={this._renderRow.bind(this)}
 				renderFooter={this._renderFooter.bind(this)}

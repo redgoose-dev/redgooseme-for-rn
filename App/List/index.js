@@ -2,7 +2,6 @@ import React from 'react';
 import { Text, View } from 'react-native';
 
 import css from './css';
-import Item from './Item';
 import InfiniteScroll from '../InfiniteScroll';
 
 
@@ -22,7 +21,7 @@ export default class List extends React.Component {
 						scrollEvent={true}
 						address="http://redgoose.me/ajax/?render=json&count=20&nest="
 						pageParam="page"
-						pageSize={10}
+						pageSize={5}
 						delay={500}
 						useMoreButton={false}
 						correctionDatas={(datas) => {
